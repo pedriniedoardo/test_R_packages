@@ -1,0 +1,193 @@
+# Transcription factor activity inference in bulk RNA-seq -----------------
+# Pau Badia-i-Mompel1
+# 1Heidelberg Universiy
+# 15 April 2025
+# Package
+# decoupleR 2.14.0
+
+# Bulk RNA-seq yield many molecular readouts that are hard to interpret by themselves. One way of summarizing this information is by inferring transcription factor (TF) activities from prior knowledge.
+# In this notebook we showcase how to use decoupleR for transcription factor activity inference with a bulk RNA-seq data-set where the transcription factor FOXA2 was knocked out in pancreatic cancer cell lines.
+# The data consists of 3 Wild Type (WT) samples and 3 Knock Outs (KO). They are freely available in GEO.
+
+
+# 1Loading packages -------------------------------------------------------
+# First, we need to load the relevant packages:
+## We load the required packages
+library(decoupleR)
+library(tidyverse)
+library(pheatmap)
+library(ggrepel)
+library(OmnipathR)
+
+# 2Loading the data-set ---------------------------------------------------
+# Here we used an already processed bulk RNA-seq data-set. We provide the normalized log-transformed counts, the experimental design meta-data and the Differential Expressed Genes (DEGs) obtained using limma.
+
+# For this example we use limma but we could have used DeSeq2, edgeR or any other statistical framework. decoupleR requires a gene level statistic to perform enrichment analysis but it is agnostic of how it was generated. However, we do recommend to use statistics that include the direction of change and its significance, for example the t-value obtained for limma(t) or DeSeq2(stat). edgeR does not return such statistic but we can create our own by weighting the obtained logFC by pvalue with this formula: -log10(pvalue) * logFC.
+
+# We can open the data like this:
+inputs_dir <- system.file("extdata", package = "decoupleR")
+data <- readRDS(file.path(inputs_dir, "bk_data.rds"))
+
+# From data we can extract the mentioned information. Here we see the normalized log-transformed counts:
+# some calue are not present in the dataset and coded as NA.
+id_na <- which(is.na(data$counts),arr.ind = T)[,1]
+data$counts[id_na,]
+
+# Remove NAs and set row names
+counts <- data$counts %>%
+  dplyr::mutate_if(~ any(is.na(.x)), ~ if_else(is.na(.x),0,.x)) %>% 
+  column_to_rownames(var = "gene") %>% 
+  as.matrix()
+
+# confirm the conversion of the NAs to 0
+counts[id_na,] %>%
+  head()
+
+head(counts)
+
+# The design meta-data:
+design <- data$design
+design
+
+# And the results of limma, of which we are interested in extracting the obtained t-value and p-value from the contrast:
+
+# Extract t-values per gene
+deg <- data$limma_ttop %>%
+  select(ID, logFC, t, P.Value) %>% 
+  filter(!is.na(t)) %>% 
+  column_to_rownames(var = "ID") %>%
+  as.matrix()
+head(deg)
+
+# 3CollecTRI network ------------------------------------------------------
+# CollecTRI is a comprehensive resource containing a curated collection of TFs and their transcriptional targets compiled from 12 different resources. This collection provides an increased coverage of transcription factors and a superior performance in identifying perturbed TFs compared to our previous DoRothEA network and other literature based GRNs. Similar to DoRothEA, interactions are weighted by their mode of regulation (activation or inhibition).
+# For this example we will use the human version (mouse and rat are also available). We can use decoupleR to retrieve it from OmniPath. The argument split_complexes keeps complexes or splits them into subunits, by default we recommend to keep complexes together.
+
+net <- get_collectri(organism='human', split_complexes=FALSE)
+net
+
+# Similar to DoRothEA, interactions are weighted by their mode of regulation (activation or inhibition).
+net$mor %>% table()
+
+# 4Activity inference with Univariate Linear Model (ULM) ------------------
+# To infer TF enrichment scores we will run the Univariate Linear Model (ulm) method. For each sample in our dataset (mat) and each TF in our network (net), it fits a linear model that predicts the observed gene expression based solely on the TF’s TF-Gene interaction weights. Once fitted, the obtained t-value of the slope is the score. If it is positive, we interpret that the TF is active and if it is negative we interpret that it is inactive.
+
+# To run decoupleR methods, we need an input matrix (mat), an input prior knowledge network/resource (net), and the name of the columns of net that we want to use.
+
+# Run ulm
+sample_acts <- run_ulm(mat=counts,
+                       net=net,
+                       .source='source',
+                       .target='target',
+                       .mor='mor',
+                       minsize = 5)
+
+sample_acts
+
+# 5Visualization ----------------------------------------------------------
+# From the obtained results we will observe the most variable activities across samples in a heat-map:
+n_tfs <- 25
+
+# Transform to wide matrix
+sample_acts_mat <- sample_acts %>%
+  pivot_wider(id_cols = 'condition', names_from = 'source',
+              values_from = 'score') %>%
+  column_to_rownames('condition') %>%
+  as.matrix()
+
+sample_acts_mat[,1:5]
+
+# Get top tfs with more variable means across clusters
+tfs <- sample_acts %>%
+  group_by(source) %>%
+  summarise(std = sd(score)) %>%
+  arrange(-abs(std)) %>%
+  head(n_tfs) %>%
+  pull(source)
+sample_acts_mat <- sample_acts_mat[,tfs]
+
+# Scale per sample
+sample_acts_mat <- scale(sample_acts_mat)
+
+# Choose color palette
+palette_length = 100
+my_color = colorRampPalette(c("Darkblue", "white","red"))(palette_length)
+
+my_breaks <- c(seq(-3, 0, length.out=ceiling(palette_length/2) + 1),
+               seq(0.05, 3, length.out=floor(palette_length/2)))
+
+# Plot
+pheatmap(sample_acts_mat, border_color = NA, color=my_color, breaks = my_breaks) 
+
+
+# We can also infer TF activities from the t-values of the DEGs between KO and WT:
+# Run ulm
+contrast_acts <- run_ulm(mat=deg[, 't', drop=FALSE],
+                         net=net,
+                         .source='source',
+                         .target='target',
+                         .mor='mor', minsize = 5)
+contrast_acts
+
+# Let’s show the changes in activity between KO and WT:
+# Filter top TFs in both signs
+f_contrast_acts <- contrast_acts %>%
+  mutate(rnk = NA)
+msk <- f_contrast_acts$score > 0
+f_contrast_acts[msk, 'rnk'] <- rank(-f_contrast_acts[msk, 'score'])
+f_contrast_acts[!msk, 'rnk'] <- rank(-abs(f_contrast_acts[!msk, 'score']))
+tfs <- f_contrast_acts %>%
+  arrange(rnk) %>%
+  head(n_tfs) %>%
+  pull(source)
+f_contrast_acts <- f_contrast_acts %>%
+  filter(source %in% tfs)
+
+# Plot
+ggplot(f_contrast_acts, aes(x = reorder(source, score), y = score)) + 
+  geom_bar(aes(fill = score), stat = "identity") +
+  scale_fill_gradient2(low = "darkblue", high = "indianred", 
+                       mid = "whitesmoke", midpoint = 0) + 
+  theme_minimal() +
+  theme(axis.title = element_text(face = "bold", size = 12),
+        axis.text.x = 
+          element_text(angle = 45, hjust = 1, size =10, face= "bold"),
+        axis.text.y = element_text(size =10, face= "bold"),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) +
+  xlab("TFs")
+
+# The TFs GLI3 and SPDEF are deactivated in KO when compared to WT, while MUC and NFKB1 seem to be activated.
+# We can further visualize the most differential target genes in each TF along their p-values to interpret the results. For example, let’s see the genes that are belong to SP1:
+tf <- 'SP1'
+
+df <- net %>%
+  filter(source == tf) %>%
+  arrange(target) %>%
+  mutate(ID = target, color = "3") %>%
+  column_to_rownames('target')
+
+head(df)
+
+inter <- sort(intersect(rownames(deg),rownames(df)))
+df <- df[inter, ]
+df[,c('logfc', 't_value', 'p_value')] <- deg[inter, ]
+df <- df %>%
+  mutate(color = if_else(mor > 0 & t_value > 0, '1', color)) %>%
+  mutate(color = if_else(mor > 0 & t_value < 0, '2', color)) %>%
+  mutate(color = if_else(mor < 0 & t_value > 0, '2', color)) %>%
+  mutate(color = if_else(mor < 0 & t_value < 0, '1', color))
+
+head(df)
+
+ggplot(df, aes(x = logfc, y = -log10(p_value), color = color, size=abs(mor))) +
+  geom_point() +
+  scale_colour_manual(values = c("red","royalblue3","grey")) +
+  geom_label_repel(aes(label = ID, size=1)) + 
+  theme_minimal() +
+  theme(legend.position = "none") +
+  geom_vline(xintercept = 0, linetype = 'dotted') +
+  geom_hline(yintercept = 0, linetype = 'dotted') +
+  ggtitle(tf)
+
+# Here blue means that the sign of multiplying the mor and t-value is negative, meaning that these genes are “deactivating” the TF, and red means that the sign is positive, meaning that these genes are “activating” the TF.
