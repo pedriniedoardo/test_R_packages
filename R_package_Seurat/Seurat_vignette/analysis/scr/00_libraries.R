@@ -1,0 +1,8 @@
+# renv::install("Seurat@4.3.0")
+# renv::install("Matrix@1.5-4.1")
+# renv::install("tidyverse")
+# renv::install("harmony")
+renv::install("igraph")
+renv::install("reticulate")
+renv::install("spatstat.geom")
+renv::install("shiny")
