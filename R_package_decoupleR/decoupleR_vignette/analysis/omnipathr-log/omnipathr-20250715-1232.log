@@ -1,0 +1,13 @@
+[2025-07-15 12:32:00] [INFO]    [OmnipathR] Welcome to OmnipathR!
+[2025-07-15 12:32:00] [INFO]    [OmnipathR] OmnipathR version: 3.14.0
+[2025-07-15 12:32:00] [TRACE]   [OmnipathR] Reading JSON from `/home/edo/.cache/OmnipathR/cache.json` (encoding: UTF-8).
+[2025-07-15 12:32:00] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2025-07-15 12:32:00] [INFO]    [OmnipathR] Initialized cache: `/home/edo/.cache/OmnipathR`.
+[2025-07-15 12:32:00] [TRACE]   [OmnipathR] Reading JSON from `/home/edo/.cache/R/renv/cache/v5/linux-ubuntu-jammy/R-4.4/x86_64-pc-linux-gnu/OmnipathR/3.14.0/d268f1d2aa7d430152bd5a8a3a85a5f0/OmnipathR/db/db_def.json` (encoding: UTF-8).
+[2025-07-15 12:32:00] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2025-07-15 12:32:00] [TRACE]   [OmnipathR] Reading JSON from `/home/edo/.cache/R/renv/cache/v5/linux-ubuntu-jammy/R-4.4/x86_64-pc-linux-gnu/OmnipathR/3.14.0/d268f1d2aa7d430152bd5a8a3a85a5f0/OmnipathR/internal/magic_bytes.json` (encoding: UTF-8).
+[2025-07-15 12:32:00] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2025-07-15 12:32:00] [TRACE]   [OmnipathR] Reading JSON from `/home/edo/.cache/R/renv/cache/v5/linux-ubuntu-jammy/R-4.4/x86_64-pc-linux-gnu/OmnipathR/3.14.0/d268f1d2aa7d430152bd5a8a3a85a5f0/OmnipathR/internal/urls.json` (encoding: UTF-8).
+[2025-07-15 12:32:00] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2025-07-15 12:32:00] [TRACE]   [OmnipathR] Reading JSON from `/home/edo/.cache/R/renv/cache/v5/linux-ubuntu-jammy/R-4.4/x86_64-pc-linux-gnu/OmnipathR/3.14.0/d268f1d2aa7d430152bd5a8a3a85a5f0/OmnipathR/internal/id_types.json` (encoding: UTF-8).
+[2025-07-15 12:32:00] [TRACE]   [OmnipathR] JSON validation successful: TRUE

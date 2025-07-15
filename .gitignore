@@ -2,9 +2,9 @@
 data/
 out/
 .Rproj.user/
-renv/
 
 # files
 .Rhistory
 *.Rproj
 .Rprofile
+.log
