@@ -106,8 +106,9 @@ tfs <- sample_acts %>%
   pull(source)
 sample_acts_mat <- sample_acts_mat[,tfs]
 
-# Scale per sample
+# Scale per gene (column)
 sample_acts_mat <- scale(sample_acts_mat)
+colSums(sample_acts_mat)
 
 # Choose color palette
 palette_length = 100
