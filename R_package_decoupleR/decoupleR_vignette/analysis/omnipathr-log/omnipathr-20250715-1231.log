@@ -36,3 +36,4 @@
 [2025-07-15 12:32:09] [TRACE]   [OmnipathR] Restricting interaction records to datasets: tf_mirna; and resources: CollecTRI
 [2025-07-15 12:32:09] [TRACE]   [OmnipathR] Filtering evidence columns: positive, negative, directed, undirected; to datasets: tf_mirna; and resources: CollecTRI; excluding resources: none
 [2025-07-15 12:32:10] [SUCCESS] [OmnipathR] Downloaded 232 interactions.
+[2025-07-15 15:32:19] [TRACE]   [OmnipathR] Removing database `Ensembl and OMA organism names` (not used in the past 10800 seconds)
