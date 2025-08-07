@@ -1015,6 +1015,7 @@ Arguments of the `geom_bar` can be adjusted in `upset_set_size`; it can use a di
 ### 4.3 Logarithmic scale
 
 In order to use a log scale we need to pass additional scale to in `layers` argument. However, as the bars are on flipped coordinates, we need a reversed log transformation. Appropriate function, `reverse_log_trans()` is provided:
+
 ```{r}
 #| label: fig-31
 #| fig-align: "center"
@@ -1047,7 +1048,9 @@ upset(
     queries=list(upset_query(set='Drama', fill='blue'))
 )
 ```
-We can also modify the labels to display the logged values: 
+
+We can also modify the labels to display the logged values:
+
 ```{r}
 #| label: fig-32
 #| fig-align: "center"
@@ -1098,7 +1101,9 @@ upset(
 ```
 
 ### 4.4 Display counts
+
 To display the count add `geom_text()`:
+
 ```{r}
 #| label: fig-33
 #| fig-align: "center"
@@ -1123,6 +1128,7 @@ upset(
 ```
 
 ### 4.5 Change position and add fill
+
 ```{r}
 #| label: fig-34
 #| fig-align: "center"
@@ -1148,8 +1154,8 @@ upset(
 )
 ```
 
-
 ### 4.6 Hide the set sizes altogether
+
 ```{r}
 #| label: fig-35
 #| fig-align: "center"
@@ -1165,7 +1171,9 @@ upset(
 ```
 
 ### 4.7 Change the label
-For compatibility with older `ggplot2` versions, `upset_set_size` generates a plot with flipped coordinates and therefore `ylab` needs to be used instead of `xlab` (and aesthetic `x` is used in examples above in place of `y`. This wil change it in a future major release of `ComplexUpset`. 
+
+For compatibility with older `ggplot2` versions, `upset_set_size` generates a plot with flipped coordinates and therefore `ylab` needs to be used instead of `xlab` (and aesthetic `x` is used in examples above in place of `y`. This wil change it in a future major release of `ComplexUpset`.
+
 ```{r}
 #| label: fig-36
 #| fig-align: "center"
@@ -1182,9 +1190,12 @@ upset(
 )
 ```
 
-## 5. Adjusting other aesthetics 
+## 5. Adjusting other aesthetics
+
 ### 5.1 Stripes
-Change the colors: 
+
+Change the colors:
+
 ```{r}
 #| label: fig-37
 #| fig-align: "center"
@@ -1200,7 +1211,9 @@ upset(
     stripes=c('cornsilk1', 'deepskyblue1')
 )
 ```
-You can use multiple colors: 
+
+You can use multiple colors:
+
 ```{r}
 #| label: fig-38
 #| fig-align: "center"
@@ -1217,7 +1230,8 @@ upset(
 )
 ```
 
-Or, set the color to white to effectively disable the stripes: 
+Or, set the color to white to effectively disable the stripes:
+
 ```{r}
 #| label: fig-39
 #| fig-align: "center"
@@ -1233,7 +1247,9 @@ upset(
     stripes='white'
 )
 ```
-Advanced customization using `upset_stripes()`: 
+
+Advanced customization using `upset_stripes()`:
+
 ```{r}
 #| label: fig-40
 #| fig-align: "center"
@@ -1253,7 +1269,8 @@ upset(
 )
 ```
 
-Mapping stripes attributes to data using `upset_stripes()`: 
+Mapping stripes attributes to data using `upset_stripes()`:
+
 ```{r}
 #| label: fig-41
 #| fig-align: "center"
@@ -1284,7 +1301,9 @@ upset(
 ```
 
 ### 5.2 Adding title
+
 Adding title with `ggtitle` with add it to the intersection matrix:
+
 ```{r}
 #| label: fig-42
 #| fig-align: "center"
@@ -1294,8 +1313,9 @@ Adding title with `ggtitle` with add it to the intersection matrix:
 
 upset(movies, genres, min_size=10) + ggtitle('Intersection matrix title')
 ```
-                                                                                                                                                                   
+
 In order to add a title for the entire plot, you need to wrap the plot:
+
 ```{r}
 #| label: fig-43
 #| fig-align: "center"
@@ -1307,7 +1327,9 @@ upset(movies, genres, min_size=10, wrap=TRUE) + ggtitle('The overlap between gen
 ```
 
 ### 5.3 Making the plot transparent
+
 You need to set the plot background to transparent and adjust colors of stripes to your liking:
+
 ```{r}
 #| label: fig-44
 #| fig-align: "center"
@@ -1323,10 +1345,13 @@ You need to set the plot background to transparent and adjust colors of stripes 
     & theme(plot.background=element_rect(fill='transparent', color=NA))
 )
 ```
+
 Use `ggsave('upset.png', bg="transparent")` when exporting to PNG.
 
 ### 5.4 Adjusting the intersection matrix
+
 Use `intersection_matrix()` to modify the matrix parameters:
+
 ```{r}
 #| label: fig-45
 #| fig-align: "center"
@@ -1380,15 +1405,18 @@ upset(
 )
 ```
 
-
 ## 6. Themes
+
 The themes for specific components are defined in `upset_themes` list, which contains themes for:
+
 ```{r}
 names(upset_themes)
 ```
+
 You can substitute this list for your own using `themes` argument. While you can specify a theme for every component, if you omit one or more components those will be taken from the element named `default`.
 
 ### 6.1 Substituting themes
+
 ```{r}
 #| label: fig-46
 #| fig-align: "center"
@@ -1398,7 +1426,9 @@ You can substitute this list for your own using `themes` argument. While you can
 
 upset(movies, genres, min_size=10, themes=list(default=theme()))
 ```
+
 You can also add themes for your custom panels/annotations:
+
 ```{r}
 #| label: fig-47
 #| fig-align: "center"
@@ -1431,9 +1461,10 @@ upset(
 )
 ```
 
-                                                                                                                                                                     
 ### 6.2 Adjusting the default themes
+
 Modify all the default themes as once with `upset_default_themes()`:
+
 ```{r}
 #| label: fig-48
 #| fig-align: "center"
@@ -1446,7 +1477,9 @@ upset(
     themes=upset_default_themes(text=element_text(color='red'))
 )
 ```
+
 To modify only a subset of default themes use `upset_modify_themes()`:
+
 ```{r}
 #| label: fig-49
 #| fig-align: "center"
@@ -1468,14 +1501,13 @@ upset(
 )
 ```
 
-
 ## 7. Highlighting (queries)
-Pass a list of lists generated with `upset_query()` utility to the optional `queries` argument to selectively modify aesthetics of specific intersections or sets.
-Use one of the arguments: `set` or `intersect` (not both) to specify what to highlight:
 
-- `set` will highlight the bar of the set size,
-- `intersect` will highlight an intersection on all components (by default), or on components chosen with `only_components`
-- all other parameters will be used to modify the geoms
+Pass a list of lists generated with `upset_query()` utility to the optional `queries` argument to selectively modify aesthetics of specific intersections or sets. Use one of the arguments: `set` or `intersect` (not both) to specify what to highlight:
+
+-   `set` will highlight the bar of the set size,
+-   `intersect` will highlight an intersection on all components (by default), or on components chosen with `only_components`
+-   all other parameters will be used to modify the geoms
 
 ```{r}
 #| label: fig-50
@@ -1512,10 +1544,12 @@ upset(
 )
 ```
 
-
 ## 8. Sorting
+
 ### 8.1 Sorting intersections
+
 By degree:
+
 ```{r}
 #| label: fig-51
 #| fig-align: "center"
@@ -1525,8 +1559,9 @@ By degree:
 
 upset(movies, genres, width_ratio=0.1, sort_intersections_by='degree')
 ```
-                                                                                                                                                                     
+
 By ratio:
+
 ```{r}
 #| label: fig-52
 #| fig-align: "center"
@@ -1543,8 +1578,9 @@ upset(
     )
 )
 ```
-                                                                                                                                                                     
+
 The other way around:
+
 ```{r}
 #| label: fig-53
 #| fig-align: "center"
@@ -1554,8 +1590,9 @@ The other way around:
 
 upset(movies, genres, width_ratio=0.1, sort_intersections='ascending')
 ```
-                                                                                                                                                                     
+
 Without any sorting:
+
 ```{r}
 #| label: fig-54
 #| fig-align: "center"
@@ -1567,6 +1604,7 @@ upset(movies, genres, width_ratio=0.1, sort_intersections=FALSE)
 ```
 
 First by degree then by cardinality:
+
 ```{r}
 #| label: fig-55
 #| fig-align: "center"
@@ -1576,8 +1614,9 @@ First by degree then by cardinality:
 
 upset(movies, genres, width_ratio=0.1, sort_intersections_by=c('degree', 'cardinality'))
 ```
-                                                                                                                                                                     
+
 User-specified order:
+
 ```{r}
 #| label: fig-56
 #| fig-align: "center"
@@ -1602,7 +1641,9 @@ upset(
 ```
 
 ### 8.2 Sorting sets
+
 Ascending:
+
 ```{r}
 #| label: fig-57
 #| fig-align: "center"
@@ -1612,8 +1653,9 @@ Ascending:
 
 upset(movies, genres, width_ratio=0.1, sort_sets='ascending')
 ```
-                                                                                                                                                                     
+
 Without sorting - preserving the order as in genres:
+
 ```{r}
 #| label: fig-58
 #| fig-align: "center"
@@ -1624,11 +1666,13 @@ genres
 
 upset(movies, genres, width_ratio=0.1, sort_sets=FALSE)
 ```
-                                                                                                                                                                     
-                                                                                                                                                                   
+
 ## 9. Grouping
+
 ### 9.1 Grouping intersections
+
 Use `group_by='sets'` to group intersections by set. If needed, the intersections will be repeated so that they appear in each set group. Use `upset_query()` with `group` argument to color the intersection matrix accordingly.
+
 ```{r}
 #| label: fig-59
 #| fig-align: "center"
@@ -1658,7 +1702,9 @@ upset(
 ```
 
 ## 10. Display percentages
+
 Use `aes_percentage()` utility preceded with `!!` syntax to easily display percentages. In the examples below only percentages for the movies with R rating are shown to avoid visual clutter.
+
 ```{r}
 rating_scale = scale_fill_manual(values=c(
     'R'='#E41A1C', 'PG'='#377EB8',
@@ -1669,6 +1715,7 @@ show_hide_scale = scale_color_manual(values=c('show'='black', 'hide'='transparen
 ```
 
 ### 10.1 Within intersection
+
 ```{r}
 #| label: fig-60
 #| fig-align: "center"
@@ -1699,8 +1746,9 @@ upset(
     )
 )
 ```
-                                                                                                                                                                   
+
 ### 10.2 Relative to the group
+
 ```{r}
 #| label: fig-61
 #| fig-align: "center"
@@ -1734,6 +1782,7 @@ upset(
 ```
 
 ### 10.3 Relative to all observed values
+
 ```{r}
 #| label: fig-62
 #| fig-align: "center"
@@ -1767,7 +1816,9 @@ upset(
 ```
 
 ## 11. Advanced usage examples
+
 ### 11.1 Display text on some bars only
+
 ```{r}
 #| label: fig-63
 #| fig-align: "center"
@@ -1795,8 +1846,9 @@ upset(
     )
 )
 ```
-                                                                                                                                                                   
+
 ### 11.2 Combine multiple plots together
+
 ```{r}
 #| label: fig-64
 #| fig-align: "center"
@@ -1824,8 +1876,9 @@ u2 = upset(data_2, genres, min_size=5, base_annotations=annotations)
 
 (u1 | u2) + plot_layout(guides='collect')
 ```
-                                                                                                                                                                   
+
 ### 11.3 Change height of the annotations
+
 ```{r}
 #| label: fig-65
 #| fig-align: "center"
@@ -1846,9 +1899,11 @@ upset(
     )
 ) + patchwork::plot_layout(heights=c(0.5, 1, 0.5))
 ```
-                                                                                                                                                                   
+
 ## 12. Venn diagrams
+
 Simple implementation of Venn diagrams is provided, taking the same input format as `upset()` but only supporting up to three sets.
+
 ```{r}
 movies_subset = head(movies, 300)
 genres_subset = c('Comedy', 'Drama', 'Action')
@@ -1856,8 +1911,9 @@ genres_subset = c('Comedy', 'Drama', 'Action')
 movies_subset$good_rating = movies_subset$rating > mean(movies_subset$rating)
 arranged = arrange_venn(movies_subset, sets=genres_subset)
 ```
-                                                                                                                                                                   
+
 ### 12.1 Highlight specific elements
+
 ```{r}
 #| label: fig-66
 #| fig-align: "center"
@@ -1898,8 +1954,9 @@ arranged = arrange_venn(movies_subset, sets=genres_subset)
 
 )
 ```
-                                                                                                                                                                   
+
 ### 12.2 Highlight all regions
+
 ```{r}
 #| label: fig-67
 #| fig-align: "center"
@@ -1922,6 +1979,7 @@ arranged = arrange_venn(movies_subset, sets=genres_subset)
 ```
 
 ### 12.3 Highlight specific regions
+
 ```{r}
 #| label: fig-68
 #| fig-align: "center"
@@ -1944,7 +2002,9 @@ arranged = arrange_venn(movies_subset, sets=genres_subset)
 ```
 
 ### 12.4 Two sets Venn
+
 The density of the points grid is determined in such a way that the all the points from the set with the largest space restrictions are fit into the available area. In case of the diagram below, its the observations that do not belong to any set that define the grid density:
+
 ```{r}
 #| label: fig-69
 #| fig-align: "center"
@@ -1963,4 +2023,3 @@ genres_subset = c('Action', 'Drama')
     + scale_color_venn_mix(movies, sets=genres_subset, guide='none')
 )
 ```
-
