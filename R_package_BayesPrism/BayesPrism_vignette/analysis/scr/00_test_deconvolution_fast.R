@@ -260,7 +260,8 @@ df_cor %>%
   theme(strip.background = element_blank())
 
 # confirm that the sum of the deconvoluted pBulk per sample correponds to the actual ionput values
-bulk_convoluted <- list_bulk$Endothelial + list_bulk$`T-cell` + list_bulk$`B-cell`+ list_bulk$Macrophage
+# bulk_convoluted <- list_bulk$Endothelial + list_bulk$`T-cell` + list_bulk$`B-cell`+ list_bulk$Macrophage
+bulk_convoluted <- purrr::reduce(list_bulk,`+`)
 
 # they are the same
 all.equal(bulk_convoluted,bulk_counts)
