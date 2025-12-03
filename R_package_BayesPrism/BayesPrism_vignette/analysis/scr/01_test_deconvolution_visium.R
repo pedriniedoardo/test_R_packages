@@ -22,9 +22,35 @@ seurat_ref@meta.data
 # options(timeout=600)
 # InstallData("stxBrain")
 brain <- LoadData("stxBrain", type = "anterior1")
+# plot to check the object
+SpatialFeaturePlot(brain, features = "nCount_Spatial")
+
+# to speed up the computation select a small subset of the object
+# add the coordinates
+brain <- AddMetaData(object = brain,metadata = GetTissueCoordinates(brain))
+
+# Define the boundaries for a rectangular region
+min_x <- 5500  # Minimum imagecol value
+max_x <- 6500 # Maximum imagecol value
+min_y <- 3500  # Minimum imagerow value
+max_y <- 5500 # Maximum imagerow value
+
+# subset the image
+brain_small <- subset(brain, subset = 
+                        # Filter by X coordinate (imagecol)
+                        y >= min_y & y <= max_y &
+                        x >= min_x & x <= max_x)
+
+SpatialFeaturePlot(brain_small, features = "nCount_Spatial")
+
 
 # use each barcode as a individual bulk samples for the deconvolution
-bulk_counts <- GetAssayData(brain,slot = "count") %>%
+bulk_counts_full <- GetAssayData(brain,slot = "count") %>%
+  # coerce to matrix
+  as.matrix()
+
+# to speed-up the computation reduce the number of spots
+bulk_counts <- GetAssayData(brain_small,slot = "count") %>%
   # coerce to matrix
   as.matrix()
 
@@ -195,43 +221,26 @@ theta <- get.fraction(bp=bp_results,
 theta
 
 # test --------------------------------------------------------------------
-# compare the expected prop vs the actual ones
+# load the matrices in a seurat object
+SpatialFeaturePlot(brain_small, features = "nCount_Spatial") + theme(legend.position = "right")
 
-# df_cor <- full_join(
-#   LUT_prop,
-#   theta %>%
-#     as.data.frame() %>%
-#     rownames_to_column("sample_id") %>%
-#     pivot_longer(names_to = "cell_type",values_to = "prop",-sample_id),
-#   by = c("stim" = "sample_id","seurat_annotations"="cell_type"),suffix = c(".expexted",".BayesPrism"))
+lapply(list_bulk_integer,function(x){
+  mat <- x %>%
+    as.sparse()
+})
 
-df_cor <- full_join(
-  LUT_prop,
-  theta %>%
-    as.data.frame() %>%
-    rownames_to_column("sample_id") %>%
-    pivot_longer(names_to = "cell_type",values_to = "prop",-sample_id),
-  by = c("seurat_annotations"="cell_type"),suffix = c(".expexted",".BayesPrism"))
+# define the paths in input and output
+path_in_image <- paste0("../data/misc/test_edo/raw/sample_",samp,"/",samp,"_spatial/")
+path_in_reads <- paste0("../data/misc/test_edo/raw/sample_",samp,"/")
+sample_h5 <- paste0(samp,".h5")
+path_in_meta <- paste0("../data/misc/test_edo/raw/sample_",samp,"/",samp,"_metadata.csv")
 
-df_cor %>%
-  ggplot(aes(x=prop.expexted,y=prop.BayesPrism)) +
-  geom_point() +
-  geom_abline(intercept = 0,slope = 1,col="red",linetype = "dashed") +
-  theme_bw() +
-  # facet_wrap(~seurat_annotations)+
-  theme(strip.background = element_blank())
+# read in the image file. load the highres image
+img <- Read10X_Image(image.dir = path_in_image,
+                     image.name = "tissue_hires_image.png")
 
-# confirm that the sum of the deconvoluted pBulk per sample correponds to the actual ionput values
-bulk_convoluted <- purrr::reduce(list_bulk,`+`)
-
-# the two matrices are not the same as the convoluted version is missing the genes that have been filtered out
-dim(bulk_counts)
-dim(bulk_convoluted)
-
-# match the gene id in both objects before making the comparison
-gene_id <- rownames(bulk_convoluted)
-str(bulk_convoluted)
-str(bulk_counts[gene_id,] %>% as.matrix())
-
-# they are the same
-all.equal(bulk_convoluted,bulk_counts[gene_id,] %>% as.matrix())
+# load the full matrix of reads
+spobj <- Load10X_Spatial(path_in_reads,
+                         filename = sample_h5,
+                         image = img,
+                         filter.matrix = F)
