@@ -1,5 +1,6 @@
 # AIM ---------------------------------------------------------------------
-# test the tool using a visium spatial dataset
+# test the tool using a visium spatial dataset 
+# this is a sample routine for a seurat object
 
 # libraries ---------------------------------------------------------------
 library(Seurat)
@@ -174,73 +175,3 @@ bp_results
 
 # saveRDS(bp_results,"../out/object/bp_results_rawCount_pBulk_treat_100_ifnb.rds")
 saveRDS(bp_results,"../out/object/bp_results_test_visium.rds")
-
-# Step 4: Extract and Calculate Deconvoluted Reads ------------------------
-# this can be extracted from the object as follows
-# x <- "Endothelial"
-
-list_bulk <- lapply(unique(cell_types), function(x){
-  mat <- get.exp(bp=bp_results,
-                 state.or.type="type",
-                 cell.name=x)
-  
-  data <- mat %>%
-    t()
-  
-  return(data)
-}) %>%
-  setNames(unique(cell_types))
-
-# generate integer estimates
-list_bulk_integer <- lapply(unique(cell_types), function(x){
-  mat <- get.exp(bp=bp_results,
-                 state.or.type="type",
-                 cell.name=x)
-  
-  # generate integer level estimates
-  # https://github.com/Danko-Lab/BayesPrism/issues/121
-  # round up the Z matrix to the nearest integer and use it as input for DESeq2 (without any normalization step).
-  data <- mat %>%
-    t() %>%
-    round()
-  return(data)
-}) %>%
-  setNames(unique(cell_types))
-
-# notice that the number of genes matches the one present in the reference
-lapply(list_bulk, function(x){
-  dim(x)
-})
-
-dim(sc.dat.filtered.pc)
-
-# get the fraction estimated
-theta <- get.fraction(bp=bp_results,
-                      which.theta="final",
-                      state.or.type="type")
-theta
-
-# test --------------------------------------------------------------------
-# load the matrices in a seurat object
-SpatialFeaturePlot(brain_small, features = "nCount_Spatial") + theme(legend.position = "right")
-
-lapply(list_bulk_integer,function(x){
-  mat <- x %>%
-    as.sparse()
-})
-
-# define the paths in input and output
-path_in_image <- paste0("../data/misc/test_edo/raw/sample_",samp,"/",samp,"_spatial/")
-path_in_reads <- paste0("../data/misc/test_edo/raw/sample_",samp,"/")
-sample_h5 <- paste0(samp,".h5")
-path_in_meta <- paste0("../data/misc/test_edo/raw/sample_",samp,"/",samp,"_metadata.csv")
-
-# read in the image file. load the highres image
-img <- Read10X_Image(image.dir = path_in_image,
-                     image.name = "tissue_hires_image.png")
-
-# load the full matrix of reads
-spobj <- Load10X_Spatial(path_in_reads,
-                         filename = sample_h5,
-                         image = img,
-                         filter.matrix = F)
