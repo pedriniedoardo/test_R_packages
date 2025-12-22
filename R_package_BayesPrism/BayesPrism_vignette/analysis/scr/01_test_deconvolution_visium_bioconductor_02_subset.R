@@ -166,7 +166,7 @@ data_list <- lapply(names(list_bulk_integer),function(x){
     rowData = rd2, 
     colData = DataFrame(xyz2), 
     spatialCoordsNames = c("pxl_col_in_fullres", "pxl_row_in_fullres"),
-    imgData = img2,
+    imgData = img,
     sample_id = "sample01")
   
   # add metadata
