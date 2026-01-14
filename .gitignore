@@ -7,4 +7,5 @@ out/
 .Rhistory
 *.Rproj
 .Rprofile
-.log
+*.log
+*.zip
