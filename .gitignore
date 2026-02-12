@@ -2,6 +2,7 @@
 data/
 out/
 .Rproj.user/
+ref/
 
 # files
 .Rhistory
@@ -9,3 +10,4 @@ out/
 .Rprofile
 *.log
 *.zip
+*.html

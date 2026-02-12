@@ -1,432 +1,232 @@
----
-title: "rRMSAnalyzer: package to analyze RiboMethSeq data"
-author: "Théo COMBE, Hermès PARAQINDES, Allyson MOUREAUX, Janice KIELBASSA, Fleur BOURDELAIS, Sébastien DURAND, Emilie THOMAS, Anthony FERRARI and Virginie MARCEL"
-date: "`r format(Sys.Date(), '%m/%d/%Y')`"
-abstract: >
-  RiboMethSeq is an innovative RNAseq-based approach, which was developed in 2015 to analyze 2’O-ribose methylation (2’Ome) at all sites of ribosomal RNAs (rRNA) at once, in yeast [@birkedal2014]. This approach was then transferred to human using the Illumina technology [@Marchand2016; @Erales2017; @Marcel2021]. Briefly, the presence of 2'Ome protects the phosphodiester bond located at the 3' of the 2'Ome nucleotide from alkaline hydrolysis. Thus, the presence of 2'Ome at the given nucleotide n induces under-representation of RNA fragments starting at the nucleotide n+1  and an over-representation of RNA fragments ending at the nucleotide n-1, allowing the extrapolation of 2'Ome levels at the corresponding nucleotide position n (or C-score) varying from 0 to 1 [@birkedal2014]. <br><br> The rRMSAnalyzer package can be used for any kind of RNA and with all organisms. This package provides a set of user-friendly functions to compute C-scores from RiboMethSeq read end counts as input, adjust batch effect with ComBat-Seq, visualize the data and provide a table with the annotated human rRNA sites and their C-scores. This package provides a set of user-friendly functions to (i) compute C-scores from RiboMethSeq read-end counts as input,(ii) perform quality control of the dataset, (iii) adjust batch effect with ComBat-Seq, and (iv) provide tools to visualize, analyze the data and provide a table with the annotated human rRNA sites and their C-scores (Paraqindes et al., 2023), (v) return automated QC and analytic reports. Raw data processing to obtain read-end counts from sequencing data can be performed using our Nextflow pipeline [ribomethseq-nf](https://github.com/RibosomeCRCL/ribomethseq-nf), as already described [@Marchand2016].
-output:
-   rmarkdown::html_vignette:
-      toc: true
-      number_sections: true
-      fig_width: 5
-      fig_height: 5
-vignette: >
-  %\VignetteIndexEntry{rRMSAnalyzer: package to analyze RiboMethSeq data}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
-bibliography: references.bib
----
+# ref ---------------------------------------------------------------------
+# https://github.com/RibosomeCRCL/rRMSAnalyzer/blob/main/vignettes/rRMSAnalyzer.Rmd
+# title: "rRMSAnalyzer: package to analyze RiboMethSeq data"
+# author: "Théo COMBE, Hermès PARAQINDES, Allyson MOUREAUX, Janice KIELBASSA, Fleur BOURDELAIS, Sébastien DURAND, Emilie THOMAS, Anthony FERRARI and Virginie MARCEL"
 
-```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
-```
+# abstract: ---------------------------------------------------------------
+# RiboMethSeq is an innovative RNAseq-based approach, which was developed in 2015 to analyze 2’O-ribose methylation (2’Ome) at all sites of ribosomal RNAs (rRNA) at once, in yeast [@birkedal2014]. This approach was then transferred to human using the Illumina technology [@Marchand2016; @Erales2017; @Marcel2021]. Briefly, the presence of 2'Ome protects the phosphodiester bond located at the 3' of the 2'Ome nucleotide from alkaline hydrolysis. Thus, the presence of 2'Ome at the given nucleotide n induces under-representation of RNA fragments starting at the nucleotide n+1  and an over-representation of RNA fragments ending at the nucleotide n-1, allowing the extrapolation of 2'Ome levels at the corresponding nucleotide position n (or C-score) varying from 0 to 1 [@birkedal2014]. <br><br> The rRMSAnalyzer package can be used for any kind of RNA and with all organisms. This package provides a set of user-friendly functions to compute C-scores from RiboMethSeq read end counts as input, adjust batch effect with ComBat-Seq, visualize the data and provide a table with the annotated human rRNA sites and their C-scores. This package provides a set of user-friendly functions to (i) compute C-scores from RiboMethSeq read-end counts as input,(ii) perform quality control of the dataset, (iii) adjust batch effect with ComBat-Seq, and (iv) provide tools to visualize, analyze the data and provide a table with the annotated human rRNA sites and their C-scores (Paraqindes et al., 2023), (v) return automated QC and analytic reports. Raw data processing to obtain read-end counts from sequencing data can be performed using our Nextflow pipeline [ribomethseq-nf](https://github.com/RibosomeCRCL/ribomethseq-nf), as already described [@Marchand2016].
 
-```{r setup, include=FALSE}
-library(dplyr)
+library(tidyverse)
 library(DT)
 library(kableExtra)
 library(rRMSAnalyzer)
-```
-
-# General information 
-
-## Help, bug reports and suggestions
-
-To report a bug or any suggestion to improve the package, please let us know by opening a new issue on: https://github.com/RibosomeCRCL/rRMSAnalyzer/issues
-
-## Acknowledgements
-
-We would like to thank all our collaborators for their advice and suggestions.
-
-## Funding
-
-This project has been funded by the French Cancer Institute (INCa, PLBIO 2019-138 MARACAS), the SIRIC Program (INCa-DGOS-Inserm_12563 LyRICAN) and [Synergie Lyon Cancer Foundation](https://www.synergielyoncancer.fr).
-
-## Installation
-
-The latest version of rRMSAnalyzer package can be installed from Github with :
-
-```{r, eval = FALSE}
-devtools::install_github("RibosomeCRCL/rRMSAnalyzer")
-library(rRMSAnalyzer)
-```
 
 # Initial preparation of the dataset
-
 ## RiboClass
 
-RiboClass is the main class of the package that enables the storage of both the data matrices (read-end counts and C-scores) and the associated metadata. It is automatically created when calling *`load_ribodata()`* (see [Loading data]).
+# RiboClass is the main class of the package that enables the storage of both the data matrices (read-end counts and C-scores) and the associated metadata. It is automatically created when calling *`load_ribodata()`* (see [Loading data]).
 
-It is a list containing three main elements, as described below:
+# It is a list containing three main elements, as described below:
+# 1.  **Data**: a *list of dataframe*, containing for each sample the 5' and/or 3' read-end counts provided by the user, and the calculated C-score.
+# 2.  **Metadata**: a *dataframe*, containing all the information related to the samples that can be provided by the user.
+# 3.  **rRNA_names**: a *dataframe*, reporting the names of the rRNA used in Data.
+# Some major function parameters (such as the normalization method used for C-score computation) are also kept in the RiboClass object as a reminder.
 
-1.  **Data**: a *list of dataframe*, containing for each sample the 5' and/or 3' read-end counts provided by the user, and the calculated C-score.
+# Loading data ------------------------------------------------------------
+# To use this package, the user must provide at least one csv/tsv file with the 5', 3' or 5'/3' read-end counts resulting from RiboMethSeq data per sample. The folder structure containing the csv files is not important, as long as either the directory and its sub-directories contain the necessary csv/tsv files.
+# 1.  The **name of the rRNA** on which the read end counting was performed.
+# 2.  The **position's number** on the rRNA.
+# 3.  The **value of the read-end counts** at the position.
+# Note 1: it is not necessary to provide a header in the count files, because column index can be used in the function *load_ribodata()*, using *`count_value()`*, *`count_rnaid()`* and *`count_pos()`* arguments.
+# Note 2: if no metadata is specified (metadata = NULL), rRMSAnalyzer will try to fetch any csv files in the folder specified in count_path and its subfolders.
 
-2.  **Metadata**: a *dataframe*, containing all the information related to the samples that can be provided by the user.
+# Metadata ----------------------------------------------------------------
+# The expected metadata is either a dataframe already in the R environment or a csv/tsv file.
+# 1.  **filename**: name of the csv file on disk containing the read-end counts described above. Do not modify it unless the filename has changed on disk.
+# 2.  **samplename**: rename the samples that will be analyzed and displayed on the plots. This column can be modified, as long as the sample names are unique.
+# After these two mandatory columns, the user can provide as many columns as needed for the analysis.
+# Note: if no metadata is provided in *`load_ribodata()`* (metadata = NULL), an empty metadata will be created with the “filename” and “samplename” columns pre-filled. The “samplename” column will be identical to “filename”, but can be modified by the user.
 
-3.  **rRNA_names**: a *dataframe*, reporting the names of the rRNA used in Data.
 
-Some major function parameters (such as the normalization method used for C-score computation) are also kept in the RiboClass object as a reminder.
+# How to load the data ----------------------------------------------------
+# To load both data and metadata, and store them in a RiboClass, the function *`load_ribodata()`* is used.
+# The following example displays a call to *`load_ribodata()`*, with all arguments shown :
+path <- system.file("extdata", package="rRMSAnalyzer")
+dir(path)
 
-## Loading data
+# sample metadata
+read_csv(file.path(path,"metadata.csv"))
 
-### Data to provide {-}
+# location of the files
+dir(file.path(path,"miniglioma/"))
 
-#### Read-end counts {-}
-
-To use this package, the user must provide at least one csv/tsv file with the 5', 3' or 5'/3' read-end counts resulting from RiboMethSeq data per sample. The folder structure containing the csv files is not important, as long as either the directory and its sub-directories contain the necessary csv/tsv files.
-
-1.  The **name of the rRNA** on which the read end counting was performed.
-
-2.  The **position's number** on the rRNA.
-
-3.  The **value of the read-end counts** at the position.
-
-Here is an example :
-
-| rRNA | Position on rRNA | read end count |
-|-----|-----------------|----------------|
-| 18S | 123             | 3746           |
-| 18S | 124             | 345            |
-| 18S | 125             | 324            |
-| 18S | 126             | 789            |
-| 18S | 127             | 1234           |
-
-Note 1: it is not necessary to provide a header in the count files, because column index can be used in the function *load_ribodata()*, using *`count_value()`*, *`count_rnaid()`* and *`count_pos()`* arguments.
-
-Note 2: if no metadata is specified (metadata = NULL), rRMSAnalyzer will try to fetch any csv files in the folder specified in count_path and its subfolders.
-
-#### Metadata {-}
-
-The expected metadata is either a dataframe already in the R environment or a csv/tsv file.
-
-[Two columns are mandatory for the metadata :]{.underline}
-
-1.  **filename**: name of the csv file on disk containing the read-end counts described above. Do not modify it unless the filename has changed on disk.
-
-2.  **samplename**: rename the samples that will be analyzed and displayed on the plots. This column can be modified, as long as the sample names are unique.
-
-After these two mandatory columns, the user can provide as many columns as needed for the analysis.
-
-Here is an example of metadata for 3 samples:
-
-+--------------+--------------+----------------------+
-| filename     | samplename   | condition            |
-|              |              |                      |
-| (mandatory)  | (mandatory)  | (optional)          |
-+==============+==============+======================+
-| sample1.csv  | sample 1     | condition 1          |
-+--------------+--------------+----------------------+
-| sample2.csv  | sample 2     | condition 1          |
-+--------------+--------------+----------------------+
-| sample3.csv  | sample 3     | condition 2          |
-+--------------+--------------+----------------------+
-
-Note: if no metadata is provided in *`load_ribodata()`* (metadata = NULL), an empty metadata will be created with the “filename” and “samplename” columns pre-filled. The “samplename” column will be identical to “filename”, but can be modified by the user.
-
-Here is an example of auto-generated metadata:
-
-| filename    | samplename  |
-|-------------|-------------|
-| sample1.csv | sample1.csv |
-| sample2.csv | sample2.csv |
-| sample3.csv | sample3.csv |
-
-#### How to load the data {-}
-
-To load both data and metadata, and store them in a RiboClass, the function *`load_ribodata()`* is used.
-
-The following example displays a call to *`load_ribodata()`*, with all arguments shown :
-
-```{r}
-path <- system.file("extdata", package="rRMSAnalyzer") #change for your path
-
+# load the data
 ribo <- load_ribodata(
-                      #data & metadata files path
-                      count_path = file.path(path,"miniglioma/"),
-                      metadata = file.path(path,"metadata.csv"),
-                      # data & metadata files separator
-                      count_sep = "\t",
-                      metadata_sep = ",",
-                      # count data arguments :
-                      count_header = FALSE,
-                      count_value = 3,
-                      count_rnaid = 1,
-                      count_pos = 2,
-                      # Metadata arguments :
-                      metadata_key = "filename",
-                      metadata_id = "samplename",
-                      # C-score arguments :
-                      flanking = 6,
-                      method = "median",
-                      ncores = 1)
-```
+  #data & metadata files path
+  count_path = file.path(path,"miniglioma/"),
+  metadata = file.path(path,"metadata.csv"),
+  # data & metadata files separator
+  count_sep = "\t",
+  metadata_sep = ",",
+  # count data arguments :
+  count_header = FALSE,
+  count_value = 3,
+  count_rnaid = 1,
+  count_pos = 2,
+  # Metadata arguments :
+  metadata_key = "filename",
+  metadata_id = "samplename",
+  # C-score arguments :
+  flanking = 6,
+  method = "median",
+  ncores = 1)
 
+# rRNA names --------------------------------------------------------------
+# rRNA names are automatically obtained from the data and stored in a generated dataframe inside the RiboClass. It contains two columns :
+# 1.  **original_name**: original name of each rRNA (e.g NR_023363.1).
+# 2.  **current_name**: current name of each rRNA, reflecting any user's change with *`rename_rna()`* function (see [Rename RNA]).
+# This dataframe is used to keep track of the original name, which often includes the NCBI’s accession ID.
 
-## rRNA names {-}
+# Custom
+# The user must not modify this dataframe manually. To rename or remove rRNA, the user can use *`rename_rna()`* and *`remove_rna()`*. The dataframe will be updated accordingly.
 
-### Provided {-}
+# C-score calculation -----------------------------------------------------
+# What is a C-score ? {-}
+# The C-score is a metric, calculated from the RiboMethSeq sequencing data, used to evaluate the level of 2’O-ribose methylation (2’Ome) at a given position in the rRNA. 
 
-rRNA names are automatically obtained from the data and stored in a generated dataframe inside the RiboClass. It contains two columns :
+# The C-score is calculated by normalizing the end read count with respect to the local environment at each genomic position and directly indicates the rRNA 2’Ome level. The C-score ranges from 0 (i.e., no rRNA molecules of the sample are 2’Ome at this specific site) to 1 (i.e., all rRNA molecules of the sample are 2’Ome at this specific site). A C-score with an intermediate value between 0 to 1 means that the sample contains a mixture of un-2’Ome and 2’Ome rRNA molecules. 
 
-1.  **original_name**: original name of each rRNA (e.g NR_023363.1).
+# To obtain a robust estimate of the 2’Ome level, different C-scores can be determined depending on the arguments used to compute the local coverage. In particular, the estimation method and the size of the local coverage to be considered can be changed.
 
-2.  **current_name**: current name of each rRNA, reflecting any user's change with *`rename_rna()`* function (see [Rename RNA]).
+# By default, the local coverage is estimated by calculating the **median** of the **5' read-end counts** in a **flanking region of 6** (i.e., 6 nucleotides downstream the nucleotide n and 6 upstream the nucleotide n, where n is the nucleotid directly following the 2’Ome site of interest). This package provides the ability to change these two arguments either when loading the data or during the analysis.
 
-This dataframe is used to keep track of the original name, which often includes the NCBI’s accession ID.
+# C-score computation when loading data -----------------------------------
+# When using the *`load_ribodata()`* function, a C-score is automatically calculated for all genomic positions of the rRNA. The C-score is computed using either the default arguments of the *`load_ribodata()`* function or user-defined arguments as follows:
 
-Here is an example:
+# load_ribodata(count.path = "/path/to/csv/",
+#               metadata = "/path/to/metadata.csv",
+#               # everything below is linked to C-score computation
+#               flanking = 6, # flanking region size
+#               method = "median", # use mean or median on flanking region's values
+#               ncores = 8 # number of CPU cores to use for computation
+# )
 
-| original_name    | current_name |
-|------------------|--------------|
-| NR_023363.1_5S   | 5S           |
-| NR_046235.3_5.8S | 5.8S         |
-| NR_046235.3_18S  | 18S          |
-| NR_046235.3_28S  | 28S          |
+# C-score computation during the analysis ---------------------------------
+# During the analysis, the C-score calculating arguments (method and size of the flanking region) can be modified using the *`compute_cscore()`* function, which will automatically update the C-score in the RiboClass.
+# In the following example, both the flanking region's size of the local coverage and the computation method have been modified:
 
-### Custom {-}
-
-The user must not modify this dataframe manually. To rename or remove rRNA, the user can use *`rename_rna()`* and *`remove_rna()`*. The dataframe will be updated accordingly.
-
-## C-score calculation
-
-### What is a C-score ? {-}
-
-The C-score is a metric, calculated from the RiboMethSeq sequencing data, used to evaluate the level of 2’O-ribose methylation (2’Ome) at a given position in the rRNA. 
-
-The C-score is calculated by normalizing the end read count with respect to the local environment at each genomic position and directly indicates the rRNA 2’Ome level. The C-score ranges from 0 (i.e., no rRNA molecules of the sample are 2’Ome at this specific site) to 1 (i.e., all rRNA molecules of the sample are 2’Ome at this specific site). A C-score with an intermediate value between 0 to 1 means that the sample contains a mixture of un-2’Ome and 2’Ome rRNA molecules. 
-
-To obtain a robust estimate of the 2’Ome level, different C-scores can be determined depending on the arguments used to compute the local coverage. In particular, the estimation method and the size of the local coverage to be considered can be changed.
-
-By default, the local coverage is estimated by calculating the **median** of the **5' read-end counts** in a **flanking region of 6** (i.e., 6 nucleotides downstream the nucleotide n and 6 upstream the nucleotide n, where n is the nucleotid directly following the 2’Ome site of interest). This package provides the ability to change these two arguments either when loading the data or during the analysis.
-
-#### C-score computation when loading data {-}
-
-When using the *`load_ribodata()`* function, a C-score is automatically calculated for all genomic positions of the rRNA. The C-score is computed using either the default arguments of the *`load_ribodata()`* function or user-defined arguments as follows:
-
-```{r, eval=FALSE}
-load_ribodata(count.path = "/path/to/csv/",
-              metadata = "/path/to/metadata.csv",
-              # everything below is linked to C-score computation
-              flanking = 6, # flanking region size
-              method = "median", # use mean or median on flanking region's values
-              ncores = 8 # number of CPU cores to use for computation
-              )
-```
-
-#### C-score computation during the analysis {-}
-
-During the analysis, the C-score calculating arguments (method and size of the flanking region) can be modified using the *`compute_cscore()`* function, which will automatically update the C-score in the RiboClass.
-
-In the following example, both the flanking region's size of the local coverage and the computation method have been modified:
-
-```{r,eval=FALSE}
 # Compute the C-score using different arguments,
 # including calculation of the local coverage using the mean instead of the median
 ribo <- compute_cscore(ribo,
                        flanking = 4,
                        method = "mean")
 
-```
+# **Important: this function will override the previous C-score of the RiboClass.**
 
-**Important: this function will override the previous C-score of the RiboClass.**
+# Quality control ---------------------------------------------------------
+# Due to technical limitations, it is sometimes necessary to conduct wet-lab preparations of large cohorts in several batches.
+# The main risk when making several batches is to introduce **technical biases** or **batch effect** in the dataset.
 
-# Quality control
+# Content of the QC report  -----------------------------------------------
+# A quality control (QC) report can be performed. It uses several metrics to help identify outlier samples and/or batch effects, including read-end counts and the C-score itself at all the 7217 genomic positions. The QC verifies that the coverage is uniform and reproducible between samples, eliminating the possibility of bias due to sequencing and outliers. 
+# QC can be either performed using a panel of ready to use functions, which correspond to data visualization, or automatically.
+# The automatic QC report can be generated using the *`report_qc()`* function:
+# With the ribo_toy example, the column that contains the information about samples batches is called "run". The name is thus given to the *`library_col`* argument but it can be also left empty.
 
-Due to technical limitations, it is sometimes necessary to conduct wet-lab preparations of large cohorts in several batches.
-The main risk when making several batches is to introduce **technical biases** or **batch effect** in the dataset.
+# report_qc(ribo = ribo_toy, library_col = "run")
 
-## Content of the QC report 
+# The QC report includes the following visualizations:
 
-A quality control (QC) report can be performed. It uses several metrics to help identify outlier samples and/or batch effects, including read-end counts and the C-score itself at all the 7217 genomic positions. The QC verifies that the coverage is uniform and reproducible between samples, eliminating the possibility of bias due to sequencing and outliers. 
+# - Read-end counts distribution by sample (*`boxplot_count()`*)
+# - Relative log coverage (i.e., end read count) by sample (*`plot_rlc()`*)
+# - rRNA fraction of read-end counts per sample (*`plot_count_fraction()`*)
+# - Heatmap summarizing the correlation matrix of the read-end counts (*`heatmap_annotated()`*)
+# - Correspondence analysis of the read-end counts (*`plot_coa()`*)
+# - Principal component analysis (*`plot_pca()`*)
 
-QC can be either performed using a panel of ready to use functions, which correspond to data visualization, or automatically.
-
-The automatic QC report can be generated using the *`report_qc()`* function:
-
-With the ribo_toy example, the column that contains the information about samples batches is called "run". The name is thus given to the *`library_col`* argument but it can be also left empty.
-
-```{r, eval=FALSE}
-report_qc(ribo = ribo_toy, library_col = "run")
-```
-
-The QC report includes the following visualizations:
-
-- Read-end counts distribution by sample (*`boxplot_count()`*)
-- Relative log coverage (i.e., end read count) by sample (*`plot_rlc()`*)
-- rRNA fraction of read-end counts per sample (*`plot_count_fraction()`*)
-- Heatmap summarizing the correlation matrix of the read-end counts (*`heatmap_annotated()`*)
-- Correspondence analysis of the read-end counts (*`plot_coa()`*)
-- Principal component analysis (*`plot_pca()`*)
-
-### Correlation matrix {-}
-
-To add outlier annotations on the heatmap, *`get_outliers()`* function must be used. This function computes all the outliers identified in the QC and returns a data frame summary for use in *`plot_heatmap_annotated()`*
-
-Here is an example of correlation matrix with outlier identification: 
-
-```{r, fig.asp = 0.9, fig.width = 7 ,fig.height=12}
+# Correlation matrix ------------------------------------------------------
+# To add outlier annotations on the heatmap, *`get_outliers()`* function must be used. This function computes all the outliers identified in the QC and returns a data frame summary for use in *`plot_heatmap_annotated()`*
+# Here is an example of correlation matrix with outlier identification: 
 qcdata <- rRMSAnalyzer::get_outliers(ribo)
+boxplot_count(ribo)
+plot_rlc(ribo)
+plot_coa(ribo)
+plot_pca(ribo)
 plot_heatmap_annotated(ribo, qcdata)
-```
 
 ### Output of the QC report {-}
+# Information issued from the QC report can be return as followed:
+# Here is an example of QC output: 
 
-Information issued from the QC report can be return as followed:
-
-Here is an example of QC output: 
-
-```{r, warning=FALSE}
 output_dir <- getwd()
 # To display the output
 knitr::kable(qcdata, "html") %>% kable_styling("striped") %>% scroll_box(width = "100%", height = "500px")
-```
 
-```{r, eval = FALSE}
 # To save the output
-write.table(qcdata,file.path(output_dir,"quality_control.csv"),sep="\t",row.names=FALSE,quote = FALSE)
-```
+qcdata %>%
+  write_tsv("../../out/table/00_qcdata.tsv")
 
-### Comments {-}
+# Comments ----------------------------------------------------------------
+# A Comments section is available in the QC report to add some personal comments. To do so, a Rmarkdown file should be created and saved in the working directory. Then, path to this report should be given in the *comments* argument of the *`report_qc()`* function. 
+# report_qc(ribo = ribo, specie = "human", library_col = "run", comments = "./path/to/comment_QC.Rmd")
 
-A Comments section is available in the QC report to add some personal comments. To do so, a Rmarkdown file should be created and saved in the working directory. Then, path to this report should be given in the *comments* argument of the *`report_qc()`* function. 
+# Batch effect  -----------------------------------------------------------
+# Batch effect identification
+# Technical bias (i.e., batch effect) can be identified by plotting C-scores at all the genomic positions of the rRNA for each sample on a PCA (see also [Visualization with PCA] for more uses).
 
-```{r, eval = FALSE}
-report_qc(ribo = ribo, specie = "human", library_col = "run", comments = "./path/to/comment_QC.Rmd")
-```
+# Since more than 1.5% of the C-score corresponds to non-biological noise, normalization during C-score calculation should limit the dispersion of the samples based on their C-score at all genomic positions in the whole series. Thus, Principal Component Analysis (PCA) on C-scores helps to identify putative batch effects that can be corrected using the inter-normalization option (ComBat-seq tool) (Zhang et al, 2020; Paraqindes et al, 2023). 
 
-Example of comments in rmd extension
+# The graph shows a Principal Component Analysis (PCA) plot illustrating the distance between each sample based on its C-score at all genomic positions. The samples are colored by library.
 
-```{r, eval = FALSE, echo = TRUE, asis = TRUE}
-```{=html} 
-<style type="text/css">
-  body {
-    font-family: Helvetica;
-  }
-
-  /* Apply a skyblue background to the blocks <details> */
-  details {
-    background-color: #9ecae1;
-    padding: 10px;
-    border-radius: 5px;
-  }
-</style>
-``` # erase this '#' and this sentence
-<details>
-
-<summary><b> ℹ Comments on the report  </b></summary>
-<div markdown="1">
-<p>
-Text can be entered from here ...
-
-Subtitle can be added with '##' symbol:
-
-## 5.3 Level 2 title {-} #this symbol {-} avoid continue the numbering of the table of content
-
-...to here. Those last 2 lines below must be kept. They are usefull for the layout.
-</div>
-</details>
-  
-#copy/past in an rmd file
-#apply in the report_qc() function
-#report_qc(ribo = ribo….)
-```
-
-## Batch effect 
-
-### Batch effect identification {-}
-
-Technical bias (i.e., batch effect) can be identified by plotting C-scores at all the genomic positions of the rRNA for each sample on a PCA (see also [Visualization with PCA] for more uses).
-
-Since more than 1.5% of the C-score corresponds to non-biological noise, normalization during C-score calculation should limit the dispersion of the samples based on their C-score at all genomic positions in the whole series. Thus, Principal Component Analysis (PCA) on C-scores helps to identify putative batch effects that can be corrected using the inter-normalization option (ComBat-seq tool) (Zhang et al, 2020; Paraqindes et al, 2023). 
-<br> <br>
-The graph shows a Principal Component Analysis (PCA) plot illustrating the distance between each sample based on its C-score at all genomic positions. The samples are colored by library.
-
-Here is an example:
-
-```{r}
 # Plot a Principal Component Analysis (PCA) whose colors depend on the "run" column in metadata
 plot_pca(ribo = ribo,
          color_col = "run")
-```
 
-In this example, the technical replicates RNA1 and RNA2 included in library 1 and 2 respectively, are distant from each other on the PC1 axis. Moreover, the samples should not be grouped by library or batch. The following section will resolve this batch effect.
+# In this example, the technical replicates RNA1 and RNA2 included in library 1 and 2 respectively, are distant from each other on the PC1 axis. Moreover, the samples should not be grouped by library or batch. The following section will resolve this batch effect.
 
-### Batch effect adjustment {-}
+# Batch effect adjustment -------------------------------------------------
+# Batch effect of RiboMethSeq data can be adjusted using the ComBat-seq method (Paraqindes et al, 2023 ; Zhang, et al, 2020). The rRMSAnalyzer package includes a wrapper (adjust_bias) to perform ComBat-seq adjustment which provides a new RiboClass with adjusted read end count values and C-scores automatically recalculated with the same setup arguments.
 
-Batch effect of RiboMethSeq data can be adjusted using the ComBat-seq method (Paraqindes et al, 2023 ; Zhang, et al, 2020). The rRMSAnalyzer package includes a wrapper (adjust_bias) to perform ComBat-seq adjustment which provides a new RiboClass with adjusted read end count values and C-scores automatically recalculated with the same setup arguments.
-
-```{r}
 data("ribo_toy")
+plot_pca(ribo = ribo_toy,
+         color_col = "run")
 # If necessary, adjust any technical biases using ComBat-Seq.
 # Here, as an example, we use the "run" column in metadata.
 ribo_adjusted <- adjust_bias(ribo_toy, batch = "run")
-```
 
-Batch effect adjustment can be verified using the plot_pca function on the new RiboClass:
-
-```{r}
+# Batch effect adjustment can be verified using the plot_pca function on the new RiboClass:
 plot_pca(ribo_adjusted,"run")
-```
 
-After batch effect adjustment using ComBat-seq method, the two technical replicates RNA1 and RNA2 show reduced dispersion, and the samples are separated on the PCA axes independently of the library they belong to.
+# After batch effect adjustment using ComBat-seq method, the two technical replicates RNA1 and RNA2 show reduced dispersion, and the samples are separated on the PCA axes independently of the library they belong to.
 
-## Verifying local coverage
+# Verifying local coverage ------------------------------------------------
+# The C-score depends on the local coverage around the site. For a simple visualization of the read end count coverage of the flanking region of a given genomic position of interest, use the `plot_counts_env()` function. 
+# Two plotting methods are available:
 
-The C-score depends on the local coverage around the site. For a simple visualization of the read end count coverage of the flanking region of a given genomic position of interest, use the `plot_counts_env()` function. 
-Two plotting methods are available:
+# 1. **display all samples** (default arguments): by displaying the end read count coverage of all samples using a boxplot at the +/-6 genomic position relative to the genomic position of interest (green box). A pink box is displayed if there is other modification in the window. Such a plot is automatically used when samples = "all". The median of the read end count and coverage limit are shown as two dashed red lines.
 
-1. **display all samples** (default arguments): by displaying the end read count coverage of all samples using a boxplot at the +/-6 genomic position relative to the genomic position of interest (green box). A pink box is displayed if there is other modification in the window. Such a plot is automatically used when samples = "all". The median of the read end count and coverage limit are shown as two dashed red lines.
-
-Here is an example:
-
-```{r}
+# Here is an example:
 plot_counts_env(ribo_adjusted,"NR_046235.3_5.8S",14)
-```
 
-2. **sample of interest**: by displaying the end read count coverage of the sample of interest only using the profile at the +/-6 genomic position relative to the genomic position of interest (vertical green line). The median of the read end count is displayed as a horizontal dotted red line.
+# 2. **sample of interest**: by displaying the end read count coverage of the sample of interest only using the profile at the +/-6 genomic position relative to the genomic position of interest (vertical green line). The median of the read end count is displayed as a horizontal dotted red line.
 
-Here is an example:
-
-```{r}
+# Here is an example:
 plot_counts_env(ribo_adjusted,"NR_046235.3_5.8S",14,c("S1","S2"))
-```
 
-# Data formatting for subsequent analyses
+# Data formatting for subsequent analyses ---------------------------------
+# Sample manipulation
+# Keep or remove samples {-}
+# A sample subset can be easily analyzed by specifying which samples to keep or which to remove. The user can then create a new RiboClass object containing the data and metadata of the samples of interest. In both cases, only the metadata of the remaining samples are kept in the RiboClass object, so no manual updating is required.
 
-## Sample manipulation
+# Here is an example of how to create a new RiboClass by retaining two samples of interest (“S1” and “S2”):
 
-### Keep or remove samples {-}
-
-A sample subset can be easily analyzed by specifying which samples to keep or which to remove. The user can then create a new RiboClass object containing the data and metadata of the samples of interest. In both cases, only the metadata of the remaining samples are kept in the RiboClass object, so no manual updating is required.
-
-Here is an example of how to create a new RiboClass by retaining two samples of interest (“S1” and “S2”):
-
-```{r}
 ribo_2samples <- keep_ribo_samples(ribo_adjusted,c("S1","S2"))
 print(ribo_2samples)
-```
 
-Here is an example to generate a new RiboClass by removing two samples ("RNA1" and "RNA2"):
-
-```{r}
+# Here is an example to generate a new RiboClass by removing two samples ("RNA1" and "RNA2"):
 ribo_adjusted <- remove_ribo_samples(ribo_adjusted,c("RNA1","RNA2"))
 print(ribo_adjusted)
-```
 
-In both cases, only the remaining samples' metadata are kept in the RiboClass object. There is no need to update it manually.
+# In both cases, only the remaining samples' metadata are kept in the RiboClass object. There is no need to update it manually.
 
-## rRNA manipulation and annotation
+# rRNA manipulation and annotation
+# rRNA manipulation
 
-### rRNA manipulation {-}
+# Remove rRNA
 
-#### Remove rRNA {-}
+# A subset of rRNA can be easily analyzed by specifying the rRNA to be removed. The user can thus create a new RiboClass object containing the data of the rRNAs of interest, without affecting the metadata of the samples.
 
-A subset of rRNA can be easily analyzed by specifying the rRNA to be removed. The user can thus create a new RiboClass object containing the data of the rRNAs of interest, without affecting the metadata of the samples.
-
-Here is an example where the rRNA 5S is removed:
+# Here is an example where the rRNA 5S is removed:
 
 ```{r}
 ribo_adjusted <- remove_rna(ribo, rna_to_remove = "NR_023363.1_5S")
@@ -438,8 +238,8 @@ print(ribo_adjusted)
 The annotation of rRNA 2’Ome sites using the lists provided by this package requires the use of specific rRNA names.
 
 Here is an example to check if the rRNA names provided by the user in the RiboClass match the ones used by this package :
-
-```{r}
+  
+  ```{r}
 data("human_methylated")
 cat("human_methylated's rna names: ", unique(human_methylated$rRNA),"\n")
 cat("ribo's rna names: ", as.character(ribo_adjusted$rna_names$current_name))
@@ -448,11 +248,11 @@ cat("ribo's rna names: ", as.character(ribo_adjusted$rna_names$current_name))
 In this example, the names are different and need to be updated before annotation.
 
 The `rename_rna()` function automatically updates the rRNA names given by the rRNA size order:
-
-```{r}
+  
+  ```{r}
 ribo_adjusted <- rename_rna(ribo_adjusted,
                             new_names = c("5.8S", "18S", "28S")) 
-                            # from the shortest rRNA in our RiboClass to the longest.
+# from the shortest rRNA in our RiboClass to the longest.
 
 ```
 
@@ -463,8 +263,8 @@ The rRMSAnalyzer package calculates a C-score for each genomic position of the r
 ### Included annotation : Human 2'Ome rRNA sites {-}
 
 By default, rRMSAnalyzer package includes three dataframes containing the positions and the annotations of the human rRNA 2’Ome sites:
-
--   human_methylated: a dataframe, containing the 112 known 2'Ome sites for the human rRNAs.
+  
+  -   human_methylated: a dataframe, containing the 112 known 2'Ome sites for the human rRNAs.
 
 -   human_suspected: a dataframe, containing the 17 sites that are putative 2'Ome sites for the human rRNAs, as described in the litterature.
 
@@ -496,8 +296,8 @@ You can see an example below :
 The 2’Ome sites of interest must be attached to the RiboClass object for further analysis using the `annotate_site()` function with either the provided annotations or custom annotations (see [Customize 2'Ome sites annotations]).
 
 Here is an example using the included human methylated annotations:
-
-```{r}
+  
+  ```{r}
 ribo_adjusted <- annotate_site(ribo_adjusted,
                                annot = human_methylated,
                                anno_rna = "rRNA",
@@ -804,22 +604,22 @@ report_2ome_sites(ribo = ribo_adjusted, specie = "human", condition_col = "condi
 ```
 
 To determine whether 2’Ome profiles are different between conditions using either all the annotated 2'Ome sites or only the most variable 2’Ome sites, several functions have been implemented to obtain an html report. Here is a list of the implemented plots/dataframe with the function name:
-
-- principal component analysis using the C-scores of all or the most variable annotated 2’Ome sites (*`plot_pca()`*)
+  
+  - principal component analysis using the C-scores of all or the most variable annotated 2’Ome sites (*`plot_pca()`*)
 - heatmap using the C-scores of all or the most variable the annotated 2’Ome sites (*`plot_heatmap()`*)
 - boxplot using the C-scores of the annotated 2’Ome sites in descending order of variability (*`boxplot_cscores()`*)
 - scatterplot using the Interquartile Range (IQR) of the C-scores of all the annotated 2’Ome sites in descending order of variability with a Gauss curve given the IQR distribution (*`plot_sites_by_IQR()`*)  
 - dataframe providing the metrics used to generate the report *(`get_2ome_summary()`)*
-
-Note: Moreover, the argument `only_annotated`, which is included in all the plot related functions, enables the plotting of only the annotated rRNA 2’Ome sites of interest (i.e., with biological relevance) when set to true.
+  
+  Note: Moreover, the argument `only_annotated`, which is included in all the plot related functions, enables the plotting of only the annotated rRNA 2’Ome sites of interest (i.e., with biological relevance) when set to true.
 
 ### PCA {-}
 
 As an example, the *`plot_pca()`* function is presented below.  
 
 Here is an example comparing samples reflecting different biological conditions based on the rRNA 2’Ome profile of the provided human_methylated list:
-
-```{r}
+  
+  ```{r}
 plot_pca(ribo_adjusted,
          color_col = "condition",
          only_annotated = TRUE)
@@ -835,12 +635,12 @@ plot_pca(ribo_adjusted,
 ```
 
 Note:  the function returns the complete dudi.pca _object_ (`dudi.pca()` function from ade4 library) instead of the plot by setting *object_only* to TRUE:
-
-```{r}
+  
+  ```{r}
 pca <- plot_pca(ribo_adjusted,
-         color_col = "condition",
-         only_annotated = TRUE,
-         object_only = TRUE)
+                color_col = "condition",
+                only_annotated = TRUE,
+                object_only = TRUE)
 ```
 
 ### Comments {-}
@@ -860,15 +660,15 @@ report_diff_sites(ribo = ribo_adjusted, specie = "human", condition_col = "comp1
 ```
 
 To determine whether 2’Ome levels is different between conditions at each site, several functions have been implemented to obtain an html report. Here is a list of the implemented plots/dataframe with the function name: 
-
-- line plot using the mean C-score of all annotated 2’Ome sites (*`plot_global_profile()`*)<br>
-- histogram plot representing differences in the median C-score (*`plot_comparison_median()`*)<br>
-- boxplot showing the mean C-scores for each conditions, but only for sites where a statistical difference was observed (ANOVA, Welch, Kruskal-Wallis, Wilcoxon) (*`plot_stat()`*) <br>
-- dataframe providing the metrics used to generate the report *(`get_diff_sites_summary()`)*
-
-## Summary table of statistical tests {-}
-
-To get a table of significant sites in at least one test the function below can be used.
+  
+  - line plot using the mean C-score of all annotated 2’Ome sites (*`plot_global_profile()`*)<br>
+  - histogram plot representing differences in the median C-score (*`plot_comparison_median()`*)<br>
+  - boxplot showing the mean C-scores for each conditions, but only for sites where a statistical difference was observed (ANOVA, Welch, Kruskal-Wallis, Wilcoxon) (*`plot_stat()`*) <br>
+  - dataframe providing the metrics used to generate the report *(`get_diff_sites_summary()`)*
+  
+  ## Summary table of statistical tests {-}
+  
+  To get a table of significant sites in at least one test the function below can be used.
 
 ```{r, eval = FALSE}
 get_diff_sites_summary(ribo = ribo_toy, condition_col = "comp1", comparisons = comparisons)
