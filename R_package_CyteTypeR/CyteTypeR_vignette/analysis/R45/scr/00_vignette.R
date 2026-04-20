@@ -76,6 +76,10 @@ pbmc <- RunPCA(pbmc) %>%
 # Find markers for all Clusters
 pbmc.markers <- FindAllMarkers(pbmc, only.pos = TRUE)
 
+# save the table for the analysis
+pbmc.markers %>%
+  write_tsv(file = "../../out/R45/table/pbmc_markers.tsv")
+
 # check the top poritive markers per cluster
 pbmc.markers %>%
   group_by(cluster) %>%
@@ -84,6 +88,9 @@ pbmc.markers %>%
 pbmc@meta.data
 
 DimPlot(pbmc,label = T)
+
+# save the output object processed
+saveRDS(pbmc,"../../out/R45/object/pbmc.rds")
 
 # Run CyteTypeR
 # Prep data for job submission to cytetype api
