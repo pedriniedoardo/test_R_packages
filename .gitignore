@@ -3,6 +3,7 @@ data/
 out/
 .Rproj.user/
 ref/
+.conda-pan-human-azimuth/
 
 # files
 .Rhistory
@@ -11,3 +12,5 @@ ref/
 *.log
 *.zip
 *.html
+.Rproj.user
+.positai
